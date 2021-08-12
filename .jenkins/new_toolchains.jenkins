@@ -33,7 +33,6 @@ def createReference(Map ctxt, List recipesToBuild) {
         stage('Configure environment') {
             envCreate(ctxt)
             envInside(ctxt) {
-                ctxt.shFunction('echo \$PATH')
                 ctxt.shFunction('conan --version')
                 ctxt.shFunction('conan config init --force')
             }
@@ -41,8 +40,10 @@ def createReference(Map ctxt, List recipesToBuild) {
 
         for (recipe in recipesToBuild) {
             stage("Build ${recipe.reference}") {
-                echo "${recipe.reference}: ${recipe.folder}"
-                ctxt.shFunction("conan info ${recipe.folder} ${recipe.reference}@ --profile=default")
+                envInside(ctxt) {
+                    echo "${recipe.reference}: ${recipe.folder}"
+                    ctxt.shFunction("conan info ${recipe.folder} --profile=default")
+                }
             }
         }
     }

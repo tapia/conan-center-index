@@ -1,0 +1,40 @@
+import org.yaml.snakeyaml.Yaml
+
+node("Linux") {
+    List<String> recipes = []
+    stage("Compute changes") {
+        checkout scm
+        sh 'ls -la'
+        sh 'git diff master'
+    }
+
+    List toBuild = []
+    stage("Parse config.yml to get versions") {
+        for (recipe in recipes) {
+            Yaml parser = new Yaml()
+            ArrayList data = parser.load("recipes/${recipe}/config.yml")
+            def versions = data.get('versions')
+            for (int i = 0; i < versions.size(); i++) {
+                def version = versions.keySet()[i]
+                Map<String, String> props = versions[version]
+                toBuild.append(("recipes/${recipe}/${props.folder}/conanfile.py", "${recipe}/${version}"))
+            }
+        }
+
+        echo "Recipes to build:\n - ${toBuild.collect({folder, ref -> "$ref: $folder"}).join('\n - ')}"
+    }
+
+    stage("Trigger build all systems") {
+        node("Linux") {
+
+        }
+
+        node("Windows") {
+
+        }
+
+        node("Macos") {
+
+        }
+    }
+}

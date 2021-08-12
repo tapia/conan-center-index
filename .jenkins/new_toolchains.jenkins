@@ -9,7 +9,7 @@ static removeDuplicates(List list) {
 }
 
 
-def envInside(shFunction, Closure closure) {
+def envInside(Map ctxt, Closure closure) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
     String binPath = isUnix() ? "$venvDirectory/bin/" : "$venvDirectory\\Scripts\\"
     String conanHome = isUnix() ? "${pwd()}/.conan" : "${pwd()}\\.conan"
@@ -20,46 +20,35 @@ def envInside(shFunction, Closure closure) {
     }
 }
 
-def envCreate(shFunction, Map ctxt) {
+def envCreate(Map ctxt) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
     String binPath = isUnix() ? "$venvDirectory/bin/" : "$venvDirectory\\Scripts\\"
     stage("Configure environment") {
-        shFunction("${ctxt.python_host} --version")
-        shFunction("${ctxt.python_host} -m venv $venvDirectory")
+        ctxt.shFunction("${ctxt.python_host} --version")
+        ctxt.shFunction("${ctxt.python_host} -m venv $venvDirectory")
         
-        shFunction("dir $venvDirectory")
-        shFunction("dir $venvDirectory\\Scripts")
-        shFunction("${binPath}python -m pip install -U pip")
-        shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+        ctxt.shFunction("dir $venvDirectory")
+        ctxt.shFunction("dir $venvDirectory\\Scripts")
+        ctxt.shFunction("${binPath}python -m pip install -U pip")
+        ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+    }
+}
 
-        envInside(shFunction) {
-            shFunction('conan --version')
+def createReference(Map ctxt, List recipesToBuild) {
+    try {
+        stage("Configure environment") {
+            envCreate(ctxt)
+            envInside(ctxt) {
+                ctxt.shFunction('conan --version')
+            }
         }
     }
-}
-
-def createReferenceUnix(String conanfilePath, String reference, Map ctxt) {
-    try {
-        envCreate({data -> sh(data)}, ctxt)
-    }
     finally {
         cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
             cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
             notFailBuild: true)
     }
 }
-
-def createReferenceWindows(String conanfilePath, String reference, Map ctxt) {
-    try {
-        envCreate({data -> bat(data)}, ctxt)
-    }
-    finally {
-        cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
-            cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
-            notFailBuild: true)
-    }
-}
-
 
 node('Linux') {
     List<String> recipes = []
@@ -109,25 +98,17 @@ node('Linux') {
                 /*
                 linux: {
                     docker.image('conanio/gcc10').inside {
-                        String venvDirectory = "${pwd()}/conanenv"
-                        sh("python3 -m venv $venvDirectory")
-                        withEnv(["PATH+EXTRA=$venvDirectory/bin"]) {
-                            createReferenceUnix(entry.folder, entry.reference, [python: "python", python_host: 'python3'])
-                        }
+                        createReferenceUnix(entry.folder, entry.reference, [python: "python", python_host: 'python3'])
                     }
                 },
                 macos: {
                     node('Macos') {
-                        String venvDirectory = "${pwd()}/conanenv"
-                        sh("python3 -m venv $venvDirectory")
-                        withEnv(["PATH+EXTRA=$venvDirectory/bin"]) {
-                            createReferenceUnix(entry.folder, entry.reference, [python: "python", python_host: 'python3'])
-                        }
+                        createReferenceUnix(entry.folder, entry.reference, [python: "python", python_host: 'python3'])
                     }
                 },*/
                 windows: {
                     node('Windows') {
-                        createReferenceWindows(entry.folder, entry.reference, [python: "python", python_host: 'C:\\Python39\\python.exe'])
+                        createReference([python_host: 'C:\\Python39\\python.exe', shFunction: {data -> bat(data)}], toBuild)
                     }
                 }
             )

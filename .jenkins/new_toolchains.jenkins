@@ -88,8 +88,7 @@ node('Linux') {
                     node('Windows') {
                         createReference(entry.folder, entry.reference)
                     }
-                },
-                failFast: true
+                }
             )
         }
     }

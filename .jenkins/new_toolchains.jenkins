@@ -5,22 +5,10 @@ static removeDuplicatedProfiles(List list) {
     list.unique(true, { lhs, rhs -> lhs <=> rhs })
 }
 
-def withEnvironment(Closure closure) {
-    if (isUnix()) {
-        sh 'python3 --version'
-    }
-    else {
-        bat 'python3 --version'
-    }
-    closure()
-}
 
-def createReference(String conanfilePath, String reference) {
+def createReferenceUnix(String conanfilePath, String reference) {
     try {
-        echo "Building $reference"
-        withEnvironment({
-            echo 'Inside'
-        })
+        sh 'python3 --version'
     }
     finally {
         cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
@@ -28,6 +16,18 @@ def createReference(String conanfilePath, String reference) {
             notFailBuild: true)
     }
 }
+
+def createReferenceWindows(String conanfilePath, String reference) {
+    try {
+        bat 'python3 --version'
+    }
+    finally {
+        cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
+            cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
+            notFailBuild: true)
+    }
+}
+
 
 node('Linux') {
     List<String> recipes = []

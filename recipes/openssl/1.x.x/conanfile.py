@@ -8,7 +8,7 @@ from conans import ConanFile, AutoToolsBuildEnvironment, tools
 
 required_conan_version = ">=1.33.0"
 
-# Add comment
+
 @total_ordering
 class OpenSSLVersion(object):
     def __init__(self, version_str):

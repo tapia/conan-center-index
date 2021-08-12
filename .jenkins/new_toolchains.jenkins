@@ -37,6 +37,7 @@ def createReference(Map ctxt, List recipesToBuild) {
         stage('Configure environment') {
             envCreate(ctxt)
             envInside(ctxt) {
+                ctxt.shFunction('cmake --version')
                 ctxt.shFunction('conan --version')
                 ctxt.shFunction('conan config init --force')
             }
@@ -111,7 +112,9 @@ node('Linux') {
             },
             macos: {
                 node('Macos') {
-                    createReference([python_host: 'python3', shFunction: { data -> sh(data) }, isInsideDocker: false], toBuild)
+                    withEnv(["PATH+EXTRA=/usr/local/bin"]) { // Required to find CMake
+                        createReference([python_host: 'python3', shFunction: { data -> sh(data) }, isInsideDocker: false], toBuild)
+                    }
                 }
             },
             windows: {

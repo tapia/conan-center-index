@@ -30,6 +30,10 @@ def envCreate(Map ctxt) {
 
 def createReference(Map ctxt, List recipesToBuild) {
     try {
+        stage('Checkout SCM') {
+            checkout scm
+        }
+
         stage('Configure environment') {
             envCreate(ctxt)
             envInside(ctxt) {
@@ -39,18 +43,20 @@ def createReference(Map ctxt, List recipesToBuild) {
         }
 
         for (recipe in recipesToBuild) {
-            stage("Build ${recipe.reference}") {
+            stage("Create ${recipe.reference}") {
                 envInside(ctxt) {
-                    echo "${recipe.reference}: ${recipe.folder}"
                     ctxt.shFunction("conan info ${recipe.folder} --profile=default")
+                    ctxt.shFunction("conan create ${recipe.folder} ${recipe.reference}@ --profile=default")
                 }
             }
         }
     }
     finally {
-        cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
-            cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
-            notFailBuild: true)
+        stage("CleanWS") {
+            cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
+                cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
+                notFailBuild: true)
+        }
     }
 }
 

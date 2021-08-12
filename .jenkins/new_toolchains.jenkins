@@ -2,19 +2,13 @@ import org.yaml.snakeyaml.Yaml
 
 RAISE_HOOKS = true
 
-
-@NonCPS
-static removeDuplicates(List list) {
-    list.unique(true, { lhs, rhs -> lhs <=> rhs })
-}
-
-
 def envInside(Map ctxt, Closure closure) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
     String binPath = isUnix() ? "$venvDirectory/bin/" : "$venvDirectory\\Scripts\\"
     String conanHome = isUnix() ? "${pwd()}/.conan" : "${pwd()}\\.conan"
-    String hookErrorLevel = RAISE_HOOKS ? "40" : "50"
+    String hookErrorLevel = RAISE_HOOKS ? '40' : '50'
     withEnv(["PATH+EXTRA=${binPath}", "CONAN_USER_HOME=${conanHome}", "CONAN_USER_HOME_SHORT=${conanHome}", "CONAN_HOOK_ERROR_LEVEL=${hookErrorLevel}"]) {
+        // This doesn't work if running docker.inside (https://issues.jenkins.io/browse/JENKINS-49076)
         closure()
     }
 }
@@ -23,23 +17,32 @@ def envCreate(Map ctxt) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
     String binPath = isUnix() ? "$venvDirectory/bin/" : "$venvDirectory\\Scripts\\"
     ctxt.shFunction("${ctxt.python_host} --version")
-    ctxt.shFunction("${ctxt.python_host} -m venv $venvDirectory")
-    ctxt.shFunction("${binPath}python -m pip install -U pip")
-    ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+    if (ctxt.isInsideDocker) {
+        // Alternate implementation because of https://issues.jenkins.io/browse/JENKINS-49076
+        ctxt.shFunction('pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan')
+    }
+    else {
+        ctxt.shFunction("${ctxt.python_host} -m venv $venvDirectory")
+        ctxt.shFunction("${binPath}python -m pip install -U pip")
+        ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+    }
 }
 
 def createReference(Map ctxt, List recipesToBuild) {
     try {
-        stage("Configure environment") {
+        stage('Configure environment') {
             envCreate(ctxt)
             envInside(ctxt) {
+                ctxt.shFunction('echo \$PATH')
                 ctxt.shFunction('conan --version')
+                ctxt.shFunction('conan config init --force')
             }
         }
 
         for (recipe in recipesToBuild) {
             stage("Build ${recipe.reference}") {
                 echo "${recipe.reference}: ${recipe.folder}"
+                ctxt.shFunction("conan info ${recipe.folder} ${recipe.reference}@ --profile=default")
             }
         }
     }
@@ -70,7 +73,7 @@ node('Linux') {
                 recipes.add(matcher[0][1] as String)
             }
         }
-        removeDuplicates(recipes)
+        recipes.unique(true, { lhs, rhs -> lhs <=> rhs })
     }
 
     List toBuild = []
@@ -96,17 +99,17 @@ node('Linux') {
         parallel(
             linux: {
                 docker.image('conanio/gcc10').inside {
-                    createReference([python_host: 'python3', shFunction: {data -> sh(data)}], toBuild)
+                    createReference([python_host: 'python3', shFunction: { data -> sh(data) }, isInsideDocker: true], toBuild)
                 }
             },
             macos: {
                 node('Macos') {
-                    createReference([python_host: 'python3', shFunction: {data -> sh(data)}], toBuild)
+                    createReference([python_host: 'python3', shFunction: { data -> sh(data) }, isInsideDocker: false], toBuild)
                 }
             },
             windows: {
                 node('Windows') {
-                    createReference([python_host: 'C:\\Python39\\python.exe', shFunction: {data -> bat(data)}], toBuild)
+                    createReference([python_host: 'C:\\Python39\\python.exe', shFunction: { data -> bat(data) }, isInsideDocker: false], toBuild)
                 }
             }
         )

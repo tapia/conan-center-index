@@ -6,9 +6,21 @@ static removeDuplicatedProfiles(List list) {
 }
 
 
+def pyEnv(shFunction, String workingDir) {
+    String venvDirectory = "${workingDir}/conanenv"
+    String conanHome = "${workingDir}/.conan"
+    stage("Configure environment") {
+        shFunction('python3 --version')
+        //shFunction("$venvDirectory/bin/python -m pip install -U pip")
+        //shFunction("$venvDirectory/bin/python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+        shFunction("conan --version")
+    }
+    //CONAN_USER_HOME=<pwd>, CONAN_USER_HOME_SHORT=<pwd>/s, CONAN_HOOK_ERROR_LEVEL=50
+}
+
 def createReferenceUnix(String conanfilePath, String reference) {
     try {
-        sh 'python3 --version'
+        pyEnv({data -> sh(data)}, pwd())
     }
     finally {
         cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
@@ -19,7 +31,7 @@ def createReferenceUnix(String conanfilePath, String reference) {
 
 def createReferenceWindows(String conanfilePath, String reference) {
     try {
-        bat 'python3 --version'
+        pyEnv({data -> bat(data)}, pwd())
     }
     finally {
         cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
@@ -74,19 +86,32 @@ node('Linux') {
     toBuild.each { entry ->
         stage("Build ${entry.reference}") {
             parallel(
+                /*
                 linux: {
                     docker.image('conanio/gcc10').inside {
-                        createReferenceUnix(entry.folder, entry.reference)
+                        String venvDirectory = "${pwd()}/conanenv"
+                        sh("python3 -m venv $venvDirectory")
+                        withEnv(["PATH+EXTRA=$venvDirectory/bin"]) {
+                            createReferenceUnix(entry.folder, entry.reference)
+                        }
                     }
                 },
                 macos: {
                     node('Macos') {
-                        createReferenceUnix(entry.folder, entry.reference)
+                        String venvDirectory = "${pwd()}/conanenv"
+                        sh("python3 -m venv $venvDirectory")
+                        withEnv(["PATH+EXTRA=$venvDirectory/bin"]) {
+                            createReferenceUnix(entry.folder, entry.reference)
+                        }
                     }
-                },
+                },*/
                 windows: {
                     node('Windows') {
-                        createReferenceWindows(entry.folder, entry.reference)
+                        String venvDirectory = "${pwd()}/conanenv"
+                        bat("python.exe -m venv $venvDirectory")
+                        withEnv(["PATH+EXTRA=$venvDirectory/bin"]) {
+                            createReferenceWindows(entry.folder, entry.reference)
+                        }
                     }
                 }
             )

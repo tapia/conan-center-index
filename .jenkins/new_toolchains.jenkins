@@ -76,17 +76,17 @@ node('Linux') {
             parallel(
                 linux: {
                     docker.image('conanio/gcc10').inside {
-                        createReference(entry.folder, entry.reference)
+                        createReferenceUnix(entry.folder, entry.reference)
                     }
                 },
                 macos: {
                     node('Macos') {
-                        createReference(entry.folder, entry.reference)
+                        createReferenceUnix(entry.folder, entry.reference)
                     }
                 },
                 windows: {
                     node('Windows') {
-                        createReference(entry.folder, entry.reference)
+                        createReferenceWindows(entry.folder, entry.reference)
                     }
                 }
             )

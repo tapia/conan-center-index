@@ -75,7 +75,7 @@ node('Linux') {
         stage("Build ${entry.reference}") {
             parallel(
                 linux: {
-                    docker.image('conanio/gcc10') {
+                    docker.image('conanio/gcc10').inside {
                         createReference(entry.folder, entry.reference)
                     }
                 },

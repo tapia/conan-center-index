@@ -2,9 +2,32 @@ import org.yaml.snakeyaml.Yaml
 
 @NonCPS
 static removeDuplicatedProfiles(List list) {
-    list.unique(true, { lhs, rhs -> lhs.packageID <=> rhs.packageID })
+    list.unique(true, { lhs, rhs -> lhs <=> rhs })
 }
 
+def withEnvironment(Closure closure) {
+    if (isUnix()) {
+        sh 'python3 --version'
+    }
+    else {
+        bat 'python3 --version'
+    }
+    closure()
+}
+
+def createReference(String conanfilePath, String reference) {
+    try {
+        echo "Building $reference"
+        withEnvironment({
+            echo 'Inside'
+        })
+    }
+    finally {
+        cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
+            cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
+            notFailBuild: true)
+    }
+}
 
 node('Linux') {
     List<String> recipes = []
@@ -23,7 +46,7 @@ node('Linux') {
         for (line in output.split('\n')) {
             def matcher = (line =~ /^recipes\/([^\/]+)\//)
             if (matcher) {
-                recipes.append(matcher[0][1] as String)
+                recipes.add(matcher[0][1] as String)
             }
         }
         removeDuplicatedProfiles(recipes)
@@ -32,43 +55,42 @@ node('Linux') {
     List toBuild = []
     stage('Parse config.yml to get versions') {
         for (recipe in recipes) {
+            String content = readFile("recipes/${recipe}/config.yml")
             Yaml parser = new Yaml()
-            ArrayList data = parser.load("recipes/${recipe}/config.yml")
+            Map data = parser.load(content)
             def versions = data.get('versions')
             for (int i = 0; i < versions.size(); i++) {
                 def version = versions.keySet()[i]
                 Map<String, String> props = versions[version]
-                toBuild.append(["recipes/${recipe}/${props.folder}/conanfile.py", "${recipe}/${version}"])
+                toBuild.add([
+                    folder: "recipes/${recipe}/${props.folder}/conanfile.py",
+                    reference: "${recipe}/${version}"
+                ])
             }
         }
-
-        echo "Recipes to build:\n - ${ toBuild.collect({ folder, ref -> "$ref: $folder" }).join('\n - ')}"
+        echo "Recipes to build:\n - ${ toBuild.collect({ "$it.reference: $it.folder" }).join('\n - ')}"
     }
 
-    stage('Trigger build all systems') {
-        node('Linux') {
-        }
-
-        node('Windows') {
-            try {
-                echo 'This is Windows'
-            }
-            finally {
-                cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
-                    cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
-                    notFailBuild: true)
-            }
-        }
-
-        node('Macos') {
-            try {
-                echo 'This is Macos'
-            }
-            finally {
-                cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
-                    cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
-                    notFailBuild: true)
-            }
+    toBuild.each { entry ->
+        stage("Build ${entry.reference}") {
+            parallel(
+                linux: {
+                    docker.image('conanio/gcc10') {
+                        createReference(entry.folder, entry.reference)
+                    }
+                },
+                macos: {
+                    node('Macos') {
+                        createReference(entry.folder, entry.reference)
+                    }
+                },
+                windows: {
+                    node('Windows') {
+                        createReference(entry.folder, entry.reference)
+                    }
+                },
+                failFast: true
+            )
         }
     }
 }

@@ -1,15 +1,36 @@
 import org.yaml.snakeyaml.Yaml
 
-node("Linux") {
+@NonCPS
+static removeDuplicatedProfiles(List list) {
+    list.unique(true, { lhs, rhs -> lhs.packageID <=> rhs.packageID })
+}
+
+
+node('Linux') {
     List<String> recipes = []
-    stage("Compute changes") {
-        checkout scm
-        sh 'ls -la'
-        sh 'git diff master'
+    stage('Compute changes') {
+        def urc = scm.userRemoteConfigs
+        urc[0].refspec = "${urc[0].refspec} +refs/heads/master:refs/remotes/origin/master"
+        checkout([
+            $class: 'GitSCM',
+            branches: scm.branches,
+            doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+            extensions: scm.extensions,
+            userRemoteConfigs: urc
+        ])
+
+        def output = sh(script: 'git diff --name-only origin/master --diff-filter=AMR', returnStdout: true)
+        for (line in output.split('\n')) {
+            def matcher = (line =~ /^recipes\/([^\/]+)\//)
+            if (matcher) {
+                recipes.append(matcher[0][1] as String)
+            }
+        }
+        removeDuplicatedProfiles(recipes)
     }
 
     List toBuild = []
-    stage("Parse config.yml to get versions") {
+    stage('Parse config.yml to get versions') {
         for (recipe in recipes) {
             Yaml parser = new Yaml()
             ArrayList data = parser.load("recipes/${recipe}/config.yml")
@@ -17,24 +38,37 @@ node("Linux") {
             for (int i = 0; i < versions.size(); i++) {
                 def version = versions.keySet()[i]
                 Map<String, String> props = versions[version]
-                toBuild.append(("recipes/${recipe}/${props.folder}/conanfile.py", "${recipe}/${version}"))
+                toBuild.append(["recipes/${recipe}/${props.folder}/conanfile.py", "${recipe}/${version}"])
             }
         }
 
-        echo "Recipes to build:\n - ${toBuild.collect({folder, ref -> "$ref: $folder"}).join('\n - ')}"
+        echo "Recipes to build:\n - ${ toBuild.collect({ folder, ref -> "$ref: $folder" }).join('\n - ')}"
     }
 
-    stage("Trigger build all systems") {
-        node("Linux") {
-
+    stage('Trigger build all systems') {
+        node('Linux') {
         }
 
-        node("Windows") {
-
+        node('Windows') {
+            try {
+                echo 'This is Windows'
+            }
+            finally {
+                cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
+                    cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
+                    notFailBuild: true)
+            }
         }
 
-        node("Macos") {
-
+        node('Macos') {
+            try {
+                echo 'This is Macos'
+            }
+            finally {
+                cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true,
+                    cleanWhenSuccess: true, cleanWhenUnstable: true, disableDeferredWipeout: true, deleteDirs: true,
+                    notFailBuild: true)
+            }
         }
     }
 }

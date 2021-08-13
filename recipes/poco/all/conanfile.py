@@ -60,7 +60,7 @@ class PocoConan(ConanFile):
         "PocoRedis": _PocoComponent("enable_redis", True, ("PocoNet", ), True, ()),
         "PocoSevenZip": _PocoComponent("enable_sevenzip", False, ("PocoUtil", "PocoXML", ), True, ()),
         "PocoUtil": _PocoComponent("enable_util", True, ("PocoFoundation", "PocoXML", "PocoJSON", ), True, ()),
-        "PocoXML": _PocoComponent("enable_xml", True, ("PocoFoundation", ), True, ()),
+        "PocoXML": _PocoComponent("enable_xml", True, ("PocoFoundation", ), True, ("expat::expat")),
         "PocoZip": _PocoComponent("enable_zip", True, ("PocoUtil", "PocoXML", ), True, ()),
         "PocoActiveRecord": _PocoComponent("enable_active_record", True, ("PocoFoundation", "PocoData", ), True, ()),
     }

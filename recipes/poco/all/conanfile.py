@@ -169,26 +169,26 @@ class PocoConan(ConanFile):
         tc.variables["CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP"] = True
 
         def _abs_paths(dep_name, varname):
-            return filter(lambda x: os.path.exists(x), [os.path.join(self.deps[dep_name].package_folder, e)
-                    for e in getattr(self.deps[dep_name].new_cpp_info, varname)])
+            return filter(lambda x: os.path.exists(x), [os.path.join(self.dependencies[dep_name].package_folder, e)
+                    for e in getattr(self.dependencies[dep_name].new_cpp_info, varname)])
 
         if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":  # MT or MTd
             tc.variables["POCO_MT"] = "ON" if "MT" in str(self.settings.compiler.runtime) else "OFF"
 
         if self.options.get_safe("enable_data_postgresql", False):
-            tc.variables["PostgreSQL_ROOT_DIR"] = self.deps["libpq"].package_folder
+            tc.variables["PostgreSQL_ROOT_DIR"] = self.dependencies["libpq"].package_folder
             tc.variables["PostgreSQL_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("libpq", "includedirs"))
             tc.variables["PostgreSQL_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("libpq", "libdirs"))
             tc.variables["POSTGRESQL_FOUND"] = True
         if self.options.get_safe("enable_data_mysql", False):
-            tc.variables["MYSQL_ROOT_DIR"] = self.deps["libmysqlclient"].package_folder
+            tc.variables["MYSQL_ROOT_DIR"] = self.dependencies["libmysqlclient"].package_folder
             tc.variables["MYSQL_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("libmysqlclient", "includedirs"))
             tc.variables["MYSQL_INCLUDE_DIR"] = ";".join(_abs_paths("libmysqlclient", "includedirs"))
             tc.variables["MYSQL_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("libmysqlclient", "libdirs"))
-            tc.variables["APR_ROOT_DIR"] = self.deps["apr"].package_folder
+            tc.variables["APR_ROOT_DIR"] = self.dependencies["apr"].package_folder
             tc.variables["APR_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("apr", "includedirs"))
             tc.variables["APR_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("apr", "libdirs"))
-            tc.variables["APRUTIL_ROOT_DIR"] = self.deps["apr-util"].package_folder
+            tc.variables["APRUTIL_ROOT_DIR"] = self.dependencies["apr-util"].package_folder
             tc.variables["APRUTIL_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("apr-util", "includedirs"))
             tc.variables["APRUTIL_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("apr-util", "libdirs"))
             tc.variables["MYSQL_FOUND"] = True

@@ -1,6 +1,48 @@
 import org.yaml.snakeyaml.Yaml
 
 RAISE_HOOKS = true
+CONAN_BRANCH = 'develop'
+
+LINUX_CONTAINER = 'conanio/gcc10'
+LINUX_PROFILE = """\
+    [settings]
+    os=Linux
+    arch=x86_64
+    compiler=gcc
+    compiler.libcxx=libstdc++
+    compiler.version=10
+    build_type=Release
+    [options]
+    [build_requires]
+    [env]
+    """.stripIndent()
+
+MACOS_PROFILE = """\
+    [settings]
+    os=Macos
+    arch=x86_64
+    compiler=apple-clang
+    compiler.libcxx=libc++
+    compiler.version=12.0
+    build_type=Release
+    [options]
+    [build_requires]
+    [env]
+    """.stripIndent()
+
+WINDOWS_PROFILE = """\
+    [settings]
+    os=Windows
+    arch=x86_64
+    compiler=Visual Studio
+    compiler.runtime=MD
+    compiler.version=15
+    build_type=Release
+    [options]
+    [build_requires]
+    [env]
+    """.stripIndent()
+
 
 def envInside(Map ctxt, Closure closure) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
@@ -19,12 +61,12 @@ def envCreate(Map ctxt) {
     ctxt.shFunction("${ctxt.python_host} --version")
     if (ctxt.isInsideDocker) {
         // Alternate implementation because of https://issues.jenkins.io/browse/JENKINS-49076
-        ctxt.shFunction('pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan')
+        ctxt.shFunction("pip install -e git+https://github.com/conan-io/conan.git@${CONAN_BRANCH}#egg=conan")
     }
     else {
         ctxt.shFunction("${ctxt.python_host} -m venv $venvDirectory")
         ctxt.shFunction("${binPath}python -m pip install -U pip")
-        ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+        ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@${CONAN_BRANCH}#egg=conan")
     }
 }
 
@@ -40,6 +82,8 @@ def createReference(Map ctxt, List recipesToBuild) {
                 ctxt.shFunction('cmake --version')
                 ctxt.shFunction('conan --version')
                 ctxt.shFunction('conan config init --force')
+                ctxt.shFunction('conan config install https://github.com/conan-io/hooks.git -sf hooks -tf hooks')
+                ctxt.shFunction('conan config set hooks.conan-center')
             }
         }
 
@@ -47,7 +91,8 @@ def createReference(Map ctxt, List recipesToBuild) {
             stage("Create ${recipe.reference}") {
                 envInside(ctxt) {
                     // ctxt.shFunction("conan info ${recipe.folder} --profile=default")
-                    ctxt.shFunction("conan create ${recipe.folder} ${recipe.reference}@ --profile=default")
+                    writeFile(file: 'pr_host', text: ctxt.profileHost)
+                    ctxt.shFunction("conan create ${recipe.folder} ${recipe.reference}@ --profile=pr_host")
                 }
             }
         }
@@ -106,20 +151,32 @@ node('Linux') {
     stage('Parallel on platforms') {
         parallel(
             linux: {
-                docker.image('conanio/gcc10').inside {
-                    createReference([python_host: 'python3', shFunction: { data -> sh(data) }, isInsideDocker: true], toBuild)
+                docker.image(LINUX_CONTAINER).inside {
+                    createReference([python_host: 'python3', 
+                                     shFunction: { data -> sh(data) }, 
+                                     isInsideDocker: true,
+                                     profileHost: LINUX_PROFILE], 
+                                    toBuild)
                 }
             },
             macos: {
                 node('Macos') {
                     withEnv(["PATH+EXTRA=/usr/local/bin"]) { // Required to find CMake
-                        createReference([python_host: 'python3', shFunction: { data -> sh(data) }, isInsideDocker: false], toBuild)
+                        createReference([python_host: 'python3', 
+                                         shFunction: { data -> sh(data) }, 
+                                         isInsideDocker: false,
+                                         profileHost: MACOS_PROFILE], 
+                                        toBuild)
                     }
                 }
             },
             windows: {
                 node('Windows') {
-                    createReference([python_host: 'C:\\Python39\\python.exe', shFunction: { data -> bat(data) }, isInsideDocker: false], toBuild)
+                    createReference([python_host: 'C:\\Python39\\python.exe', 
+                                     shFunction: { data -> bat(data) }, 
+                                     isInsideDocker: false,
+                                     profileHost: WINDOWS_PROFILE],
+                                    toBuild)
                 }
             }
         )

@@ -3,7 +3,7 @@ project(MyHello)
 
 set(CMAKE_CXX_STANDARD 11)
 
-find_package(poco REQUIRED)
+find_package(Poco REQUIRED)
 
 add_executable(core test_core.cpp)
 target_link_libraries(core Poco::Poco)

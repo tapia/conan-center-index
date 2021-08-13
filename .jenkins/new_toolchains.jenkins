@@ -46,7 +46,7 @@ def createReference(Map ctxt, List recipesToBuild) {
         for (recipe in recipesToBuild) {
             stage("Create ${recipe.reference}") {
                 envInside(ctxt) {
-                    ctxt.shFunction("conan info ${recipe.folder} --profile=default")
+                    // ctxt.shFunction("conan info ${recipe.folder} --profile=default")
                     ctxt.shFunction("conan create ${recipe.folder} ${recipe.reference}@ --profile=default")
                 }
             }

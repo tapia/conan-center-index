@@ -1,6 +1,7 @@
 import org.yaml.snakeyaml.Yaml
 
 RAISE_HOOKS = true
+CONAN_BRANCH = 'develop'
 
 def envInside(Map ctxt, Closure closure) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
@@ -19,12 +20,12 @@ def envCreate(Map ctxt) {
     ctxt.shFunction("${ctxt.python_host} --version")
     if (ctxt.isInsideDocker) {
         // Alternate implementation because of https://issues.jenkins.io/browse/JENKINS-49076
-        ctxt.shFunction('pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan')
+        ctxt.shFunction("pip install -e git+https://github.com/conan-io/conan.git@${CONAN_BRANCH}#egg=conan")
     }
     else {
         ctxt.shFunction("${ctxt.python_host} -m venv $venvDirectory")
         ctxt.shFunction("${binPath}python -m pip install -U pip")
-        ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@develop#egg=conan")
+        ctxt.shFunction("${binPath}python -m pip install -e git+https://github.com/conan-io/conan.git@${CONAN_BRANCH}#egg=conan")
     }
 }
 
@@ -40,6 +41,8 @@ def createReference(Map ctxt, List recipesToBuild) {
                 ctxt.shFunction('cmake --version')
                 ctxt.shFunction('conan --version')
                 ctxt.shFunction('conan config init --force')
+                ctxt.shFunction('conan config install https://github.com/conan-io/hooks.git -sf hooks -tf hooks')
+                ctxt.shFunction('conan config set hooks.conan-center')
             }
         }
 

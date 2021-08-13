@@ -240,7 +240,6 @@ class PocoConan(ConanFile):
             comp_cpp.libdirs = ["lib"]
             comp_cpp.includedirs = ["include"]
             comp_cpp.requires = list(requires) + list(external_deps)
-            print(comp_cpp.requires)
 
             if self.settings.compiler == "Visual Studio":
                 comp_cpp.defines.append("POCO_NO_AUTOMATIC_LIBS")

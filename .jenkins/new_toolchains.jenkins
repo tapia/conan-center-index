@@ -3,6 +3,7 @@ import org.yaml.snakeyaml.Yaml
 RAISE_HOOKS = true
 CONAN_BRANCH = 'develop'
 
+LINUX_CONTAINER = 'conanio/gcc10'
 LINUX_PROFILE = """\
     [settings]
     os=Linux
@@ -150,7 +151,7 @@ node('Linux') {
     stage('Parallel on platforms') {
         parallel(
             linux: {
-                docker.image('conanio/gcc10').inside {
+                docker.image(LINUX_CONTAINER).inside {
                     createReference([python_host: 'python3', 
                                      shFunction: { data -> sh(data) }, 
                                      isInsideDocker: true,

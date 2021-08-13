@@ -23,7 +23,7 @@ MACOS_PROFILE = """\
     arch=x86_64
     compiler=apple-clang
     compiler.libcxx=libc++
-    compiler.version=12.0
+    compiler.version=11.0
     build_type=Release
     [options]
     [build_requires]
@@ -36,7 +36,7 @@ WINDOWS_PROFILE = """\
     arch=x86_64
     compiler=Visual Studio
     compiler.runtime=MD
-    compiler.version=15
+    compiler.version=14
     build_type=Release
     [options]
     [build_requires]
@@ -152,28 +152,28 @@ node('Linux') {
         parallel(
             linux: {
                 docker.image(LINUX_CONTAINER).inside {
-                    createReference([python_host: 'python3', 
-                                     shFunction: { data -> sh(data) }, 
+                    createReference([python_host: 'python3',
+                                     shFunction: { data -> sh(data) },
                                      isInsideDocker: true,
-                                     profileHost: LINUX_PROFILE], 
+                                     profileHost: LINUX_PROFILE],
                                     toBuild)
                 }
             },
             macos: {
                 node('Macos') {
                     withEnv(["PATH+EXTRA=/usr/local/bin"]) { // Required to find CMake
-                        createReference([python_host: 'python3', 
-                                         shFunction: { data -> sh(data) }, 
+                        createReference([python_host: 'python3',
+                                         shFunction: { data -> sh(data) },
                                          isInsideDocker: false,
-                                         profileHost: MACOS_PROFILE], 
+                                         profileHost: MACOS_PROFILE],
                                         toBuild)
                     }
                 }
             },
             windows: {
                 node('Windows') {
-                    createReference([python_host: 'C:\\Python39\\python.exe', 
-                                     shFunction: { data -> bat(data) }, 
+                    createReference([python_host: 'C:\\Python39\\python.exe',
+                                     shFunction: { data -> bat(data) },
                                      isInsideDocker: false,
                                      profileHost: WINDOWS_PROFILE],
                                     toBuild)

@@ -77,7 +77,7 @@ class PocoConan(ConanFile):
 
     @property
     def _source_subfolder(self):
-        return "source_subfoldersource_subfolder"
+        return "source_subfolder"
 
     def source(self):
         tools.get(**self.conan_data["sources"][self.version],

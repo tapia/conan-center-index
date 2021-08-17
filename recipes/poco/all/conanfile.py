@@ -46,7 +46,7 @@ class PocoConan(ConanFile):
         "PocoDataSQLite": _PocoComponent("enable_data_sqlite", True, ("PocoData", ), True, ("sqlite3::sqlite3", )),  # also external sqlite3
         "PocoEncodings": _PocoComponent("enable_encodings", True, ("PocoFoundation", ), True, ()),
         # "PocoEncodingsCompiler": _PocoComponent("enable_encodingscompiler", False, ("PocoNet", "PocoUtil", ), False),
-        "PocoFoundation": _PocoComponent(None, "PocoFoundation", (), True, ("zlib::zlib", )),
+        "PocoFoundation": _PocoComponent(None, "PocoFoundation", (), True, ("zlib::zlib", "pcre::pcre")),
         "PocoJSON": _PocoComponent("enable_json", True, ("PocoFoundation", ), True, ()),
         "PocoJWT": _PocoComponent("enable_jwt", True, ("PocoJSON", "PocoCrypto", ), True, ()),
         "PocoMongoDB": _PocoComponent("enable_mongodb", True, ("PocoNet", ), True, ()),

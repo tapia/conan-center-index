@@ -38,7 +38,7 @@ class PocoConan(ConanFile):
         "mod_poco": _PocoComponent("enable_apacheconnector", False, ("PocoUtil", "PocoNet", ), False, ("apr::apr", "apr-util::apr-util")),
         "PocoCppParser": _PocoComponent("enable_cppparser", False, ("PocoFoundation", ), False, ()),
         # "PocoCppUnit": _PocoComponent("enable_cppunit", False, ("PocoFoundation", ), False)),
-        "PocoCrypto": _PocoComponent("enable_crypto", True, ("PocoFoundation", ), True, ("openssl::crypto", )),    # also external openssl
+        "PocoCrypto": _PocoComponent("enable_crypto", True, ("PocoFoundation", ), True, ("openssl::crypto", "openssl::ssl",)),    # "openssl::ssl" only for < 1.10.0
         "PocoData": _PocoComponent("enable_data", True, ("PocoFoundation", ), True, ()),
         "PocoDataMySQL": _PocoComponent("enable_data_mysql", True, ("PocoData", ), True, ()),
         "PocoDataODBC": _PocoComponent("enable_data_odbc", False, ("PocoData", ), True, ()),

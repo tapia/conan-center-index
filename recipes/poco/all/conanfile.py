@@ -46,7 +46,7 @@ class PocoConan(ConanFile):
         "PocoDataSQLite": _PocoComponent("enable_data_sqlite", True, ("PocoData", ), True, ("sqlite3::sqlite3", )),  # also external sqlite3
         "PocoEncodings": _PocoComponent("enable_encodings", True, ("PocoFoundation", ), True, ()),
         # "PocoEncodingsCompiler": _PocoComponent("enable_encodingscompiler", False, ("PocoNet", "PocoUtil", ), False),
-        "PocoFoundation": _PocoComponent(None, "PocoFoundation", (), True, ()),
+        "PocoFoundation": _PocoComponent(None, "PocoFoundation", (), True, ("zlib::zlib", )),
         "PocoJSON": _PocoComponent("enable_json", True, ("PocoFoundation", ), True, ()),
         "PocoJWT": _PocoComponent("enable_jwt", True, ("PocoJSON", "PocoCrypto", ), True, ()),
         "PocoMongoDB": _PocoComponent("enable_mongodb", True, ("PocoNet", ), True, ()),
@@ -240,6 +240,9 @@ class PocoConan(ConanFile):
             comp_cpp.libdirs = ["lib"]
             comp_cpp.includedirs = ["include"]
             comp_cpp.requires = list(requires) + list(external_deps)
+
+            if self.settings.os == "Linux":
+                comp_cpp.system_libs.extend(["pthread", "dl", "rt"])
 
             if self.settings.compiler == "Visual Studio":
                 comp_cpp.defines.append("POCO_NO_AUTOMATIC_LIBS")

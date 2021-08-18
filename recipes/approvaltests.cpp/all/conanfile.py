@@ -4,6 +4,7 @@ from conans import ConanFile, tools
 from conans.tools import Version, ConanInvalidConfiguration
 
 
+# Add comment
 class ApprovalTestsCppConan(ConanFile):
     name = "approvaltests.cpp"
     url = "https://github.com/conan-io/conan-center-index"

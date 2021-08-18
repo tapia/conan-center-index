@@ -81,9 +81,13 @@ class FmtConan(ConanFile):
 
         cmake_toolchain.generate()
 
+    def _patch_sources(self):
+        with tools.chdir(self.folders.base_source):
+            for patch in self.conan_data.get("patches", {}).get(self.version, []):
+                tools.patch(**patch)
+
     def build(self):
-        for patch in self.conan_data.get("patches", {}).get(self.version, []):
-            tools.patch(**patch)
+        self._patch_sources()
 
         if not self.options.header_only:
             cmake = CMake(self)

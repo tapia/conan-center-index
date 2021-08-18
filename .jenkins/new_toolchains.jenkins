@@ -44,6 +44,11 @@ WINDOWS_PROFILE = """\
     """.stripIndent()
 
 
+@NonCPS
+static removeDuplicates(List list) {
+    list.unique(true, { lhs, rhs -> lhs <=> rhs })
+}
+
 def envInside(Map ctxt, Closure closure) {
     String venvDirectory = isUnix() ? "${pwd()}/conanenv" : "${pwd()}\\conanenv"
     String binPath = isUnix() ? "$venvDirectory/bin/" : "$venvDirectory\\Scripts\\"
@@ -126,7 +131,7 @@ node('Linux') {
                 recipes.add(matcher[0][1] as String)
             }
         }
-        recipes.unique(true, { lhs, rhs -> lhs <=> rhs })
+        removeDuplicates(recipes)
     }
 
     List toBuild = []

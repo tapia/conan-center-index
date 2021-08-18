@@ -31,6 +31,7 @@ class PocoConan(ConanFile):
         "fPIC": True,
         "enable_fork": True,
     }
+    
     no_copy_source = True
 
     _PocoComponent = namedtuple("_PocoComponent", ("option", "default_option", "deps", "is_lib", "external_deps"))

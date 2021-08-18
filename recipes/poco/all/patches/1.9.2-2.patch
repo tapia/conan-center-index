@@ -271,3 +271,25 @@
  endif()
  
  add_library( "${LIBNAME}" ${LIB_MODE} ${SRCS} )
+
+diff --git a/XML/CMakeLists.txt b/XML/CMakeLists.txt
+index 48161bd..63e7eae 100644
+--- a/XML/CMakeLists.txt
++++ b/XML/CMakeLists.txt
+@@ -25,7 +25,6 @@ endif()
+ if (POCO_UNBUNDLED)
+     find_package(EXPAT REQUIRED)
+     set(SYSLIBS ${SYSLIBS} ${EXPAT_LIBRARIES})
+-    include_directories(${EXPAT_INCLUDE_DIRS})
+ else()
+     POCO_SOURCES( SRCS expat
+     src/xmlparse.cpp
+@@ -52,7 +51,7 @@ set_target_properties( "${LIBNAME}"
+     DEFINE_SYMBOL XML_EXPORTS
+     )
+ 
+-target_link_libraries( "${LIBNAME}" ${SYSLIBS} Foundation)
++target_link_libraries( "${LIBNAME}" ${SYSLIBS} Foundation expat::expat)
+ target_include_directories( "${LIBNAME}"
+     PUBLIC
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

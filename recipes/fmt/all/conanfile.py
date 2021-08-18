@@ -84,7 +84,7 @@ class FmtConan(ConanFile):
     def _patch_sources(self):
         with tools.chdir(self.folders.base_source):
             for patch in self.conan_data.get("patches", {}).get(self.version, []):
-                tools.patch(**patch)
+                tools.patch(**patch, base_path=self.source_folder)
 
     def build(self):
         self._patch_sources()

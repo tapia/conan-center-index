@@ -57,3 +57,25 @@
  target_include_directories( "${LIBNAME}"
      PUBLIC
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+
+diff --git a/XML/CMakeLists.txt b/XML/CMakeLists.txt
+index cdff6ec..8b8af1a 100644
+--- a/XML/CMakeLists.txt
++++ b/XML/CMakeLists.txt
+@@ -19,7 +19,6 @@ POCO_HEADERS_AUTO( SRCS ${HDRS_G})
+ if (POCO_UNBUNDLED)
+     find_package(EXPAT REQUIRED)
+     set(SYSLIBS ${SYSLIBS} ${EXPAT_LIBRARIES})
+-    include_directories(${EXPAT_INCLUDE_DIRS})
+ else()
+     POCO_SOURCES( SRCS expat
+     src/xmlparse.cpp
+@@ -46,7 +45,7 @@ set_target_properties( "${LIBNAME}"
+     DEFINE_SYMBOL XML_EXPORTS
+     )
+ 
+-target_link_libraries( "${LIBNAME}" ${SYSLIBS} Foundation)
++target_link_libraries( "${LIBNAME}" ${SYSLIBS} Foundation expat::expat)
+ target_include_directories( "${LIBNAME}"
+     PUBLIC
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

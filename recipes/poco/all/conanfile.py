@@ -1,8 +1,11 @@
-from conans import ConanFile, CMake, tools
-from conans.errors import ConanException, ConanInvalidConfiguration
-from collections import namedtuple, OrderedDict
 import os
+from collections import namedtuple
 
+from conans import ConanFile, tools
+from conan.tools.cmake import CMake, CMakeToolchain
+from conan.tools.microsoft import VCVars
+from conan.tools.layout import cmake_layout
+from conans.errors import ConanException, ConanInvalidConfiguration
 
 required_conan_version = ">=1.33.0"
 
@@ -13,7 +16,7 @@ class PocoConan(ConanFile):
     homepage = "https://pocoproject.org"
     topics = ("conan", "poco", "building", "networking", "server", "mobile", "embedded")
     exports_sources = "CMakeLists.txt", "patches/**"
-    generators = "cmake", "cmake_find_package"
+    generators = "CMakeDeps"
     settings = "os", "arch", "compiler", "build_type"
     license = "BSL-1.0"
     description = "Modern, powerful open source C++ class libraries for building network- and internet-based " \
@@ -28,6 +31,7 @@ class PocoConan(ConanFile):
         "fPIC": True,
         "enable_fork": True,
     }
+    no_copy_source = True
 
     _PocoComponent = namedtuple("_PocoComponent", ("option", "default_option", "dependencies", "is_lib"))
     _poco_component_tree = {
@@ -83,15 +87,13 @@ class PocoConan(ConanFile):
         ordered_components.reverse()
         return ordered_components
 
-    _cmake = None
+    def layout(self):
+        cmake_layout(self)
+        self.folders.source = ""
 
     @property
     def _source_subfolder(self):
         return "source_subfolder"
-
-    @property
-    def _build_subfolder(self):
-        return "build_subfolder"
 
     def source(self):
         tools.get(**self.conan_data["sources"][self.version],
@@ -144,12 +146,12 @@ class PocoConan(ConanFile):
             raise ConanInvalidConfiguration("Conflicting enable_netssl[_win] settings")
 
     def requirements(self):
-        self.requires("pcre/8.44")
+        self.requires("pcre/8.45")
         self.requires("zlib/1.2.11")
         if self.options.enable_xml:
             self.requires("expat/2.4.1")
         if self.options.enable_data_sqlite:
-            self.requires("sqlite3/3.35.5")
+            self.requires("sqlite3/3.36.0")
         if self.options.enable_apacheconnector:
             self.requires("apr/1.7.0")
             self.requires("apr-util/1.6.1")
@@ -162,65 +164,85 @@ class PocoConan(ConanFile):
         if self.options.enable_data_odbc and self.settings.os != "Windows":
             self.requires("odbc/2.3.9")
         if self.options.get_safe("enable_data_postgresql", False):
-            self.requires("libpq/13.2")
+            self.requires("libpq/13.3")
         if self.options.get_safe("enable_data_mysql", False):
             self.requires("apr/1.7.0")
             self.requires("apr-util/1.6.1")
             self.requires("libmysqlclient/8.0.25")
 
-    def _patch_sources(self):
-        for patch in self.conan_data.get("patches", {}).get(self.version, []):
-            tools.patch(**patch)
-
-    def _configure_cmake(self):
-        if self._cmake:
-            return self._cmake
-        self._cmake = CMake(self)
-        self._cmake.definitions["CMAKE_BUILD_TYPE"] = self.settings.build_type
+    def generate(self):
+        tc = CMakeToolchain(self)
+        tc.variables["CMAKE_BUILD_TYPE"] = self.settings.build_type
+        tc.variables["POCO_NO_AUTOMATIC_LIBS"] = True
         if tools.Version(self.version) < "1.10.1":
-            self._cmake.definitions["POCO_STATIC"] = not self.options.shared
+            tc.variables["POCO_STATIC"] = not self.options.shared
         for comp in self._poco_component_tree.values():
             if not comp.option:
                 continue
-            self._cmake.definitions[comp.option.upper()] = self.options.get_safe(comp.option, False)
-        self._cmake.definitions["POCO_UNBUNDLED"] = True
-        self._cmake.definitions["CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP"] = True
-        if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":  # MT or MTd
-            self._cmake.definitions["POCO_MT"] = "ON" if "MT" in str(self.settings.compiler.runtime) else "OFF"
-        if self.options.get_safe("enable_data_postgresql", False):
-            self._cmake.definitions["PostgreSQL_ROOT_DIR"] = self.deps_cpp_info["libpq"].rootpath
-            self._cmake.definitions["PostgreSQL_ROOT_INCLUDE_DIRS"] = ";".join(self.deps_cpp_info["libpq"].include_paths)
-            self._cmake.definitions["PostgreSQL_ROOT_LIBRARY_DIRS"] = ";".join(self.deps_cpp_info["libpq"].lib_paths)
-        if self.options.get_safe("enable_data_mysql", False):
-            self._cmake.definitions["MYSQL_ROOT_DIR"] = self.deps_cpp_info["libmysqlclient"].rootpath
-            self._cmake.definitions["MYSQL_ROOT_INCLUDE_DIRS"] = ";".join(self.deps_cpp_info["libmysqlclient"].include_paths)
-            self._cmake.definitions["MYSQL_INCLUDE_DIR"] = ";".join(self.deps_cpp_info["libmysqlclient"].include_paths)
-            self._cmake.definitions["MYSQL_ROOT_LIBRARY_DIRS"] = ";".join(self.deps_cpp_info["libmysqlclient"].lib_paths)
-            self._cmake.definitions["APR_ROOT_DIR"] = self.deps_cpp_info["apr"].rootpath
-            self._cmake.definitions["APR_ROOT_INCLUDE_DIRS"] = ";".join(self.deps_cpp_info["apr"].include_paths)
-            self._cmake.definitions["APR_ROOT_LIBRARY_DIRS"] = ";".join(self.deps_cpp_info["apr"].lib_paths)
-            self._cmake.definitions["APRUTIL_ROOT_DIR"] = self.deps_cpp_info["apr-util"].rootpath
-            self._cmake.definitions["APRUTIL_ROOT_INCLUDE_DIRS"] = ";".join(self.deps_cpp_info["apr-util"].include_paths)
-            self._cmake.definitions["APRUTIL_ROOT_LIBRARY_DIRS"] = ";".join(self.deps_cpp_info["apr-util"].lib_paths)
+            tc.variables[comp.option.upper()] = self.options.get_safe(comp.option, False)
 
-        self.output.info(self._cmake.definitions)
+        tc.variables["POCO_UNBUNDLED"] = True
+        tc.variables["CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP"] = True
+
+        def _abs_paths(dep_name, varname):
+            return filter(lambda x: os.path.exists(x), [os.path.join(self.dependencies[dep_name].package_folder, e)
+                    for e in getattr(self.dependencies[dep_name].new_cpp_info, varname)])
+
+        if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":  # MT or MTd
+            tc.variables["POCO_MT"] = "ON" if "MT" in str(self.settings.compiler.runtime) else "OFF"
+
+        if self.options.get_safe("enable_data_postgresql", False):
+            tc.variables["PostgreSQL_ROOT_DIR"] = self.dependencies["libpq"].package_folder
+            tc.variables["PostgreSQL_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("libpq", "includedirs"))
+            tc.variables["PostgreSQL_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("libpq", "libdirs"))
+        if self.options.get_safe("enable_data_mysql", False):
+            tc.variables["MYSQL_ROOT_DIR"] = self.dependencies["libmysqlclient"].package_folder
+            tc.variables["MYSQL_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("libmysqlclient", "includedirs"))
+            tc.variables["MYSQL_INCLUDE_DIR"] = ";".join(_abs_paths("libmysqlclient", "includedirs"))
+            tc.variables["MYSQL_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("libmysqlclient", "libdirs"))
+            tc.variables["APR_ROOT_DIR"] = self.dependencies["apr"].package_folder
+            tc.variables["APR_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("apr", "includedirs"))
+            tc.variables["APR_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("apr", "libdirs"))
+            tc.variables["APRUTIL_ROOT_DIR"] = self.dependencies["apr-util"].package_folder
+            tc.variables["APRUTIL_ROOT_INCLUDE_DIRS"] = ";".join(_abs_paths("apr-util", "includedirs"))
+            tc.variables["APRUTIL_ROOT_LIBRARY_DIRS"] = ";".join(_abs_paths("apr-util", "libdirs"))
+        if self.options.get_safe("enable_crypto"):
+            tc.variables["ENABLE_CRYPTO"] = True
         # Disable fork
         if not self.options.get_safe("enable_fork", True):
-            self._cmake.definitions["POCO_NO_FORK_EXEC"] = True
-        # On Windows, Poco needs a message (MC) compiler.
-        with tools.vcvars(self.settings) if self.settings.compiler == "Visual Studio" else tools.no_op():
-            self._cmake.configure(build_dir=self._build_subfolder)
-        return self._cmake
+            tc.variables["POCO_NO_FORK_EXEC"] = True
+
+        if self.options.get_safe("enable_data_postgresql", False):
+            tc.variables["POSTGRESQL_ENABLED"] = True
+
+        if self.options.get_safe("enable_mysql", False):
+            tc.variables["MYSQL_ENABLED"] = True
+
+        tc.variables["OPENSSL_FOUND"] = True
+        tc.variables["CONAN_PACKAGE_VERSION"] = self.version
+        tc.generate()
+
+        ms = VCVars(self)
+        ms.generate()
+
+    def _patch_sources(self):
+
+        print(self.folders.base_source)
+        with tools.chdir(self.folders.base_source):
+            for patch in self.conan_data.get("patches", {}).get(self.version, []):
+                tools.patch(**patch)
 
     def build(self):
         self._patch_sources()
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
+        # On Windows, Poco needs a message (MC) compiler.
+        with tools.vcvars(self.settings) if self.settings.compiler == "Visual Studio" else tools.no_op():
+            cmake.configure()
         cmake.build()
 
     def package(self):
         self.copy("LICENSE", dst="licenses", src=self._source_subfolder)
-        cmake = self._configure_cmake()
-        cmake.install()
+        CMake(self).install()
         tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
         tools.rmdir(os.path.join(self.package_folder, "cmake"))
         tools.remove_files_by_mask(os.path.join(self.package_folder, "bin"), "*.pdb")

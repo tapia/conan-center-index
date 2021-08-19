@@ -241,14 +241,14 @@ class LibcurlConan(ConanFile):
         # Disable curl tool for these reasons:
         # - link errors if mingw shared or iOS/tvOS/watchOS
         # - it makes recipe consistent with CMake build where we don't build curl tool
-        top_makefile = os.path.join(self._source_subfolder, "Makefile.am")
+        top_makefile = os.path.join(self.source_folder, "Makefile.am")
         tools.replace_in_file(top_makefile, "SUBDIRS = lib src", "SUBDIRS = lib")
         tools.replace_in_file(top_makefile, "include src/Makefile.inc", "")
 
         if self._is_mingw:
             # patch for zlib naming in mingw
             if self.options.with_zlib:
-                configure_ac = os.path.join(self._source_subfolder, "configure.ac")
+                configure_ac = os.path.join(self.source_folder, "configure.ac")
                 zlib_name = self.deps_cpp_info["zlib"].libs[0]
                 tools.replace_in_file(configure_ac,
                                       "AC_CHECK_LIB(z,",
@@ -259,7 +259,7 @@ class LibcurlConan(ConanFile):
 
             if self.options.shared:
                 # patch for shared mingw build
-                lib_makefile = os.path.join(self._source_subfolder, "lib", "Makefile.am")
+                lib_makefile = os.path.join(self.source_folder, "lib", "Makefile.am")
                 tools.replace_in_file(lib_makefile,
                                       "noinst_LTLIBRARIES = libcurlu.la",
                                       "")
@@ -331,10 +331,10 @@ class LibcurlConan(ConanFile):
 
         if self._has_metalink_option:
             params.append("--with-libmetalink={}".format(yes_no(self.options.with_libmetalink)))
-        
+
         if not self.options.with_proxy:
             params.append("--disable-proxy")
-       
+
         if not self.options.with_rtsp:
             params.append("--disable-rtsp")
 

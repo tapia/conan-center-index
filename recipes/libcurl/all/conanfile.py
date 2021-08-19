@@ -177,7 +177,6 @@ class LibcurlConan(ConanFile):
         tools.download("https://curl.haxx.se/ca/cacert.pem", "cacert.pem", verify=False)  # TODO: RECUPERAR ESTOOOOOOOOOO>>>>>>>>>>>>>
 
     def layout(self):
-        self.cpp.package.components["curl"].includedirs = ["include"]
         cmake_layout(self)
 
     def imports(self):
@@ -199,7 +198,10 @@ class LibcurlConan(ConanFile):
             self._build_with_autotools()
 
     def _patch_sources(self):
-        tools.files.apply_conandata_patches(self)
+        with tools.chdir(self.folders.base_source):
+            for patch in self.conan_data.get("patches", {}).get(self.version, []):
+                tools.patch(**patch, base_path=self.source_folder)
+
         self._patch_misc_files()
         self._patch_mingw_files()
         self._patch_cmake()
@@ -459,6 +461,8 @@ class LibcurlConan(ConanFile):
         self.cpp_info.components["curl"].set_property("cmake_find_package", "libcurl")
         self.cpp_info.components["curl"].set_property("cmake_find_package_multi", "libcurl")
         self.cpp_info.components["curl"].set_property("pkg_config", "libcurl")
+
+        self.cpp_info.components["curl"].libdirs = ["lib"]
 
         if self.settings.compiler == "Visual Studio":
             self.cpp_info.components["curl"].libs = ["libcurl_imp"] if self.options.shared else ["libcurl"]

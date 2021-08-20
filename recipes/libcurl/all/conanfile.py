@@ -270,7 +270,7 @@ class LibcurlConan(ConanFile):
                                       "noinst_LTLIBRARIES = libcurl.la")
                 # add directives to build dll
                 # used only for native mingw-make
-                if not tools.cross_building(self.settings):
+                if not tools.cross_building(self):
                     added_content = tools.load("lib_Makefile_add.am")
                     tools.save(lib_makefile, added_content, append=True)
 
@@ -338,7 +338,7 @@ class LibcurlConan(ConanFile):
             params.append("--disable-rtsp")
 
         # Cross building flags
-        if tools.cross_building(self.settings):
+        if tools.cross_building(self):
             if self.settings.os == "Linux" and "arm" in self.settings.arch:
                 params.append("--host=%s" % self._get_linux_arm_host())
             elif self.settings.os == "iOS":

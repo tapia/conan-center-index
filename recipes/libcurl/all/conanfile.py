@@ -372,7 +372,7 @@ class LibcurlConan(ConanFile):
         return version
 
     def _build_with_autotools(self):
-        with tools.chdir(self.source_folder):
+        with tools.chdir(self.build_folder):
             # autoreconf
             self.run("{} -fiv".format(tools.get_env("AUTORECONF") or "autoreconf"), win_bash=tools.os_info.is_windows, run_environment=True)
 

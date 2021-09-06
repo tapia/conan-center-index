@@ -285,6 +285,18 @@ class LibcurlConan(ConanFile):
         tools.replace_in_file(os.path.join(self.source_folder, "CMakeLists.txt"),
                               "include(CurlSymbolHiding)", "")
 
+        if tools.Version(self.version) <= "7.74.0":
+            tools.replace_in_file(os.path.join(self.source_folder, "CMakeLists.txt"),
+                                  'check_library_exists_concat("idn2" idn2_lookup_ul HAVE_LIBIDN2)',
+                                  'if (USE_LIBIDN2)\n'
+                                  '  check_library_exists_concat("idn2" idn2_lookup_ul HAVE_LIBIDN2)\n'
+                                  'endif()')
+            tools.replace_in_file(os.path.join(self.source_folder, "CMakeLists.txt"),
+                                  'check_include_file_concat("idn2.h"           HAVE_IDN2_H)',
+                                  'if (USE_LIBIDN2)\n'
+                                  '  check_include_file_concat("idn2.h"           HAVE_IDN2_H)\n'
+                                  'endif()')
+
     def _get_configure_command_args(self):
         yes_no = lambda v: "yes" if v else "no"
         params = [
@@ -457,6 +469,7 @@ class LibcurlConan(ConanFile):
         cmake_toolchain.generate()
 
     def _build_with_cmake(self):
+        self._patch_cmake()
         cmake = CMake(self)
         cmake.configure()
         cmake.build()

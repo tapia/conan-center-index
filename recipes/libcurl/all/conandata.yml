@@ -46,33 +46,33 @@ sources:
     url: https://curl.haxx.se/download/curl-7.64.1.tar.gz
 patches:
   "7.74.0":
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.74.0.patch"
   "7.73.0":
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.72.0":
     - patch_file: "patches/002-add-missing-file-FindZstd.patch"
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.71.1":
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.71.0":
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.70.0":
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.69.1":
     - patch_file: "patches/003-cross-build-run-ifelse-7.66.0.patch"
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.68.0":
     - patch_file: "patches/003-cross-build-run-ifelse-7.66.0.patch"
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.67.0":
     - patch_file: "patches/001-Update-FindLibSSH2.cmake-add-libssh2-as-possible-nam.patch"
     - patch_file: "patches/003-cross-build-run-ifelse-7.66.0.patch"
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.66.0":
     - patch_file: "patches/001-Update-FindLibSSH2.cmake-add-libssh2-as-possible-nam.patch"
     - patch_file: "patches/003-cross-build-run-ifelse-7.66.0.patch"
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"
   "7.64.1":
     - patch_file: "patches/001-Update-FindLibSSH2.cmake-add-libssh2-as-possible-nam.patch"
     - patch_file: "patches/003-cross-build-run-ifelse-7.64.1.patch"
-    - patch_file: "patches/004-fix-libidn2-detection.patch"
+    - patch_file: "patches/004-fix-libidn2-detection-7.73.0.patch"

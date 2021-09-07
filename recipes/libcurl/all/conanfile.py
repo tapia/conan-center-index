@@ -285,7 +285,7 @@ class LibcurlConan(ConanFile):
         tools.replace_in_file(os.path.join(self.source_folder, "CMakeLists.txt"),
                               "include(CurlSymbolHiding)", "")
 
-        if tools.Version(self.version) <= "7.74.0":
+        if self.settings.os == "Windows" and tools.Version(self.version) <= "7.74.0":
             tools.replace_in_file(os.path.join(self.source_folder, "CMakeLists.txt"),
                                   'check_library_exists_concat("idn2" idn2_lookup_ul HAVE_LIBIDN2)',
                                   'if (USE_LIBIDN2)\n'

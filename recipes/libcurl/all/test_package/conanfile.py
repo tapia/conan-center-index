@@ -1,28 +1,34 @@
-from conans import ConanFile, CMake, tools
 import os
-import subprocess
 import re
+import subprocess
+
+from conans import ConanFile, tools
+from conan.tools.cmake import CMake
+from conan.tools.layout import cmake_layout
 
 
 class TestPackageConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "cmake", "cmake_find_package"
+    generators = "CMakeDeps", "CMakeToolchain"
 
     def build(self):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
 
+    def layout(self):
+        cmake_layout(self)
+
     @property
     def _test_executable(self):
         if self.settings.os == "Windows":
-            return os.path.join("bin", "test_package.exe")
+            return os.path.join(self.cpp.build.bindirs[0], "test_package.exe")
         else:
-            return os.path.join("bin", "test_package")
+            return os.path.join(self.cpp.build.bindirs[0], "test_package")
 
     def test(self):
         if not tools.cross_building(self):
-            self.run(self._test_executable, run_environment=True)
+            self.run(self._test_executable, env="conanrunenv")
         else:
             # We will dump information for the generated executable
             if self.settings.os in ["Android", "iOS"]:

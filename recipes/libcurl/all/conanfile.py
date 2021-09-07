@@ -94,6 +94,9 @@ class LibcurlConan(ConanFile):
         return tools.Version(self.version) < "7.78.0" and not self._is_using_cmake_build
 
     def config_options(self):
+        if tools.Version(self.version) < "7.75.0" and self.settings.os == "Windows" and self.options.with_libidn:
+            raise ConanInvalidConfiguration("{} {} can't have libidn enabled".format(self.name, self.version))
+
         if self.settings.os == "Windows":
             del self.options.fPIC
         if not self._has_zstd_option:

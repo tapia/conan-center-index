@@ -279,6 +279,8 @@ class LibcurlConan(ConanFile):
             return
         # Custom findZstd.cmake file relies on pkg-config file, make sure that it's consumed on all platforms
         if self._has_zstd_option:
+            with open(os.path.join(self.source_folder, "CMake", "FindZstd.cmake"), 'r') as f:
+                print(f.read())
             tools.replace_in_file(os.path.join(self.source_folder, "CMake", "FindZstd.cmake"),
                                   "if(UNIX)", "if(TRUE)")
         # TODO: check this patch, it's suspicious

@@ -471,7 +471,6 @@ class LibcurlConan(ConanFile):
         cmake_toolchain.generate()
 
     def _build_with_cmake(self):
-        self._patch_cmake()
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
